@@ -5,13 +5,25 @@
         <a-input v-model="form.title" placeholder="请输入标题" />
       </a-form-item>
       <a-form-item field="tags" label="标签">
-        <a-input-tag v-model="form.tags" placeholder="请选择标签" allow-clear />
+        <a-input-tag
+          v-model="form.tags"
+          placeholder="请输入标签，输入完成后按回车键"
+          allow-clear
+        />
       </a-form-item>
       <a-form-item field="content" label="题目内容">
         <MdEditor :value="form.content" :handle-change="onContentChange" />
       </a-form-item>
       <a-form-item field="answer" label="答案">
         <MdEditor :value="form.answer" :handle-change="onAnswerChange" />
+      </a-form-item>
+      <a-form-item field="judgeStrategy" label="判题策略">
+        <a-space size="large">
+          <a-radio-group v-model="form.judgeStrategy">
+            <a-radio value="same">same</a-radio>
+            <a-radio value="any">any</a-radio>
+          </a-radio-group>
+        </a-space>
       </a-form-item>
       <a-form-item
         :label="`测试用例配置`"
@@ -100,7 +112,6 @@
 import { onMounted, ref } from "vue";
 import MdEditor from "@/components/MdEditor.vue";
 import {
-  JudgeConfig,
   QuestionControllerService,
   QuestionVO,
 } from "../../../generated/question";
@@ -123,6 +134,7 @@ const form = ref<QuestionVO>({
     stackLimit: 0,
     timeLimit: 0,
   },
+  judgeStrategy: "",
   tags: [],
   title: "",
 });
@@ -192,9 +204,9 @@ const doSubmit = async () => {
     );
     if (res.code === 0) {
       message.success("创建成功");
+      router.push({ path: "/manage/question" });
     } else {
       message.error("创建失败，" + res.message);
-      router.push({ path: "/manage/question" });
     }
   }
 };

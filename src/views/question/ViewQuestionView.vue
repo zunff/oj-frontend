@@ -93,7 +93,7 @@ import {
   QuestionVO,
 } from "../../../generated/question";
 import message from "@arco-design/web-vue/es/message";
-import { ref, defineProps, withDefaults, onMounted } from "vue";
+import { ref, defineProps, withDefaults, onMounted, watch } from "vue";
 import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
 import { IconPlayArrow } from "@arco-design/web-vue/es/icon";

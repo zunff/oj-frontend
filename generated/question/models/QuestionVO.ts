@@ -16,6 +16,7 @@ export type QuestionVO = {
     id?: number;
     judgeCase?: Array<JudgeCase>;
     judgeConfig?: JudgeConfig;
+    judgeStrategy?: string;
     submitNum?: number;
     tags?: Array<string>;
     thumbNum?: number;

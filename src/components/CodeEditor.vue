@@ -26,7 +26,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const codeEditorRef = ref();
 const codeEditor = ref();
-const value = ref("");
+const value = ref(
+  "import java.util.*;\n\n" +
+    "public class Main {\n" +
+    "    public static void main(String[] args) throws Exception {\n\n" +
+    "    }\n" +
+    "}"
+);
 watch(
   () => props.language,
   () => {

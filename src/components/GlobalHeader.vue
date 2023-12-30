@@ -32,22 +32,43 @@
           </a-menu-item>
         </a-menu>
       </a-col>
-      <a-col flex="100px">
-        <div style="font-weight: bold">
+      <a-col flex="150px">
+        <a-dropdown-button>
           {{ store.state.user?.loginUser?.userName ?? "未登录" }}
-        </div>
+          <template #icon>
+            <icon-down />
+          </template>
+          <template #content>
+            <a-doption style="padding: 0 15px">
+              <div
+                v-if="store.state.user?.loginUser?.userName"
+                @click="handleLogout"
+              >
+                <icon-import />
+                退出登陆
+              </div>
+              <div v-else @click="handleLogin">
+                <icon-export />
+                立即登陆
+              </div>
+            </a-doption>
+          </template>
+        </a-dropdown-button>
       </a-col>
     </a-row>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { IconDown, IconImport, IconExport } from "@arco-design/web-vue/es/icon";
 import { routes } from "@/router/routes";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import checkAccess from "@/access/checkAccess";
 import "@/access";
+import { UserControllerService } from "../../generated/user";
+import message from "@arco-design/web-vue/es/message";
 
 const router = useRouter();
 const selectKeys = ref(["/"]);
@@ -77,6 +98,20 @@ const doMenuClick = (key: string) => {
 // setTimeout(() => {
 //   store.dispatch("user/getLoginUser");
 // }, 3000);
+
+const handleLogin = () => {
+  router.push("/user/login");
+};
+
+const handleLogout = async () => {
+  const data = await UserControllerService.userLogoutUsingPost();
+  if (data.data) {
+    message.success("退出登陆成功");
+    store.state.user.loginUser = undefined;
+  } else {
+    message.error("退出登陆失败，" + data.message);
+  }
+};
 </script>
 
 <style scoped></style>

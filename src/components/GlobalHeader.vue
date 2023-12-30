@@ -27,8 +27,8 @@
               />
             </div>
           </a-menu-item>
-          <a-menu-item v-for="item in visibleRoutes" :key="item.path"
-            >{{ item.name }}
+          <a-menu-item v-for="item in visibleRoutes" :key="item.path">
+            {{ item.name }}
           </a-menu-item>
         </a-menu>
       </a-col>
@@ -60,7 +60,12 @@
 </template>
 
 <script lang="ts" setup>
-import { IconDown, IconImport, IconExport } from "@arco-design/web-vue/es/icon";
+import {
+  IconDown,
+  IconImport,
+  IconExport,
+  IconHome,
+} from "@arco-design/web-vue/es/icon";
 import { routes } from "@/router/routes";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";

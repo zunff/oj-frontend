@@ -17,7 +17,11 @@
       <a-form-item field="answer" label="答案">
         <MdEditor :value="form.answer" :handle-change="onAnswerChange" />
       </a-form-item>
-      <a-form-item field="judgeStrategy" label="判题策略">
+      <a-form-item
+        field="judgeStrategy"
+        label="判题策略"
+        tooltip="选择same时，要求用户输出与答案完全一致，any则表示用户输出只要与答案其中一个相等即可。"
+      >
         <a-space size="large">
           <a-radio-group v-model="form.judgeStrategy">
             <a-radio value="same">same</a-radio>
@@ -36,6 +40,7 @@
               :field="`judgeCaseItem[${index}].input`"
               :label="`输入用例-${index + 1}`"
               :key="index"
+              help="若要输入多个参数，请用空格隔开"
             >
               <a-input
                 v-model="judgeCaseItem.input"
@@ -56,7 +61,11 @@
             >
               <a-input
                 v-model="judgeCaseItem.output"
-                placeholder="请输入测试输出用例"
+                :placeholder="
+                  form.judgeStrategy === 'any'
+                    ? '多个答案间用英文分号;隔开'
+                    : '请输入测试输出用例'
+                "
               />
             </a-form-item>
           </a-space>

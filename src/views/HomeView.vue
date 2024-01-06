@@ -55,7 +55,9 @@
         <div>
           {{
             `${
-              record.submitNum ? record.acceptedNum / record.submitNum : "0"
+              record.submitNum
+                ? Math.ceil((record.acceptedNum / record.submitNum) * 100)
+                : 0
             }% (${record.acceptedNum}/${record.submitNum})`
           }}
         </div>

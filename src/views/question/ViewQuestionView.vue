@@ -121,7 +121,12 @@ const loadData = async () => {
 
 const form = ref<QuestionSubmitAddRequest>({
   language: "java",
-  code: "",
+  code:
+    "import java.util.*;\n\n" +
+    "public class Main {\n" +
+    "    public static void main(String[] args) throws Exception {\n\n" +
+    "    }\n" +
+    "}",
   questionId: props.id as any,
 });
 

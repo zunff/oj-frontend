@@ -3,13 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type UserVO = {
+export type UserInterfaceInfo = {
     accessKey?: string;
     createTime?: string;
     id?: number;
-    secretKey?: string;
-    userAvatar?: string;
-    userName?: string;
-    userProfile?: string;
-    userRole?: string;
+    interfaceId?: number;
+    isDelete?: number;
+    leftNum?: number;
+    status?: number;
+    totalNum?: number;
+    updateTime?: string;
 };

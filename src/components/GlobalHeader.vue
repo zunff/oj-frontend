@@ -52,6 +52,18 @@
                 立即登陆
               </div>
             </a-doption>
+            <a-doption style="padding: 0 15px">
+              <div @click="goApiList">
+                <icon-send />
+                Api开放平台
+              </div>
+            </a-doption>
+            <a-doption style="padding: 0 15px">
+              <div @click="goUserInfo">
+                <icon-user />
+                个人信息
+              </div>
+            </a-doption>
           </template>
         </a-dropdown-button>
       </a-col>
@@ -62,9 +74,10 @@
 <script lang="ts" setup>
 import {
   IconDown,
-  IconImport,
   IconExport,
-  IconHome,
+  IconImport,
+  IconSend,
+  IconUser,
 } from "@arco-design/web-vue/es/icon";
 import { routes } from "@/router/routes";
 import { computed, ref } from "vue";
@@ -106,6 +119,15 @@ const doMenuClick = (key: string) => {
 
 const handleLogin = () => {
   router.push("/user/login");
+};
+
+const goApiList = () => {
+  router.push("/list/api");
+};
+const goUserInfo = () => {
+  router.push({
+    path: `/info/user/${store.state.user.loginUser.id}`,
+  });
 };
 
 const handleLogout = async () => {

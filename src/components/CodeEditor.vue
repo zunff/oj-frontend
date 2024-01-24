@@ -26,13 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const codeEditorRef = ref();
 const codeEditor = ref();
-const value = ref(
-  "import java.util.*;\n\n" +
-    "public class Main {\n" +
-    "    public static void main(String[] args) throws Exception {\n\n" +
-    "    }\n" +
-    "}"
-);
+// const value = ref(props.value);
 watch(
   () => props.language,
   () => {
@@ -49,6 +43,7 @@ onMounted(() => {
   if (!codeEditorRef.value) {
     return;
   }
+  console.log(props.value);
   setEditor();
   //编辑 监听内容变化
   codeEditor.value.onDidChangeModelContent(() => {
@@ -59,7 +54,7 @@ onMounted(() => {
 const setEditor = () => {
   //Hover on each property to see its docs!
   codeEditor.value = monaco.editor.create(codeEditorRef.value, {
-    value: value.value,
+    value: props.value,
     language: props.language,
     automaticLayout: true,
     colorDecorators: true,

@@ -1,99 +1,87 @@
 <template>
   <div id="globalHeader">
-    <a-row align="center" :wrap="false">
-      <a-col flex="auto">
-        <a-menu
+    <el-row align="middle" :gutter="0">
+      <el-col :span="18">
+        <el-menu
           mode="horizontal"
-          :selected-keys="selectKeys"
-          @menu-item-click="doMenuClick"
+          :default-active="activeIndex"
+          @select="doMenuClick"
+          class="header-menu"
         >
-          <a-menu-item
-            key="0"
-            :style="{ padding: 0, marginRight: '38px' }"
-            disabled
-          >
-            <div
-              :style="{
-                width: '50px',
-                height: '50px',
-                borderRadius: '2px',
-                background: 'var(--color-fill-3)',
-                cursor: 'text',
-              }"
-            >
-              <img
-                style="height: 100%; width: 100%"
-                src="../assets/sheep.png"
-              />
+          <el-menu-item index="logo" disabled class="logo-item">
+            <div class="logo-container">
+              <img class="logo-image" src="../assets/sheep.png" alt="Logo" />
             </div>
-          </a-menu-item>
-          <a-menu-item v-for="item in visibleRoutes" :key="item.path">
+          </el-menu-item>
+          <el-menu-item
+            v-for="item in visibleRoutes"
+            :key="item.path"
+            :index="item.path"
+          >
             {{ item.name }}
-          </a-menu-item>
-        </a-menu>
-      </a-col>
-      <a-col flex="150px">
-        <a-dropdown-button>
-          {{ store.state.user?.loginUser?.userName ?? "未登录" }}
-          <template #icon>
-            <icon-down />
-          </template>
-          <template #content>
-            <a-doption style="padding: 0 15px">
-              <div
+          </el-menu-item>
+        </el-menu>
+      </el-col>
+      <el-col :span="6" class="user-section">
+        <el-dropdown @command="handleCommand">
+          <span class="user-dropdown">
+            {{ store.state.user?.loginUser?.userName ?? "未登录" }}
+            <el-icon class="el-icon--right">
+              <arrow-down />
+            </el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
                 v-if="store.state.user?.loginUser?.userName"
-                @click="handleLogout"
+                command="logout"
               >
-                <icon-import />
-                退出登陆
-              </div>
-              <div v-else @click="handleLogin">
-                <icon-export />
-                立即登陆
-              </div>
-            </a-doption>
-            <a-doption style="padding: 0 15px">
-              <div @click="goApiList">
-                <icon-send />
+                <el-icon><switch-button /></el-icon>
+                退出登录
+              </el-dropdown-item>
+              <el-dropdown-item v-else command="login">
+                <el-icon><user /></el-icon>
+                立即登录
+              </el-dropdown-item>
+              <el-dropdown-item command="apiList">
+                <el-icon><connection /></el-icon>
                 Api开放平台
-              </div>
-            </a-doption>
-            <a-doption style="padding: 0 15px">
-              <div @click="goUserInfo">
-                <icon-user />
+              </el-dropdown-item>
+              <el-dropdown-item command="userInfo">
+                <el-icon><user /></el-icon>
                 个人信息
-              </div>
-            </a-doption>
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-        </a-dropdown-button>
-      </a-col>
-    </a-row>
+        </el-dropdown>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import {
-  IconDown,
-  IconExport,
-  IconImport,
-  IconSend,
-  IconUser,
-} from "@arco-design/web-vue/es/icon";
+  ArrowDown,
+  SwitchButton,
+  User,
+  Connection,
+} from "@element-plus/icons-vue";
 import { routes } from "@/router/routes";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import checkAccess from "@/access/checkAccess";
 import "@/access";
-import { UserControllerService } from "../../generated/user";
-import message from "@arco-design/web-vue/es/message";
+import { userLogout } from "@/api";
+import { ElMessage } from "element-plus";
 
 const router = useRouter();
-const selectKeys = ref(["/"]);
+const activeIndex = ref("/");
 const store = useStore();
-//展示在菜单的路由
+
+// 展示在菜单的路由
 const visibleRoutes = computed(() => {
-  return routes.filter((item, index) => {
+  return routes.filter((item) => {
     if (item.meta?.hideInMenu) {
       return false;
     }
@@ -104,41 +92,95 @@ const visibleRoutes = computed(() => {
   });
 });
 
-router.afterEach((to, form, failure) => {
-  selectKeys.value = [to.path];
+router.afterEach((to) => {
+  activeIndex.value = to.path;
 });
+
 const doMenuClick = (key: string) => {
-  router.push({
-    path: key,
-  });
+  if (key !== "logo") {
+    router.push({
+      path: key,
+    });
+  }
 };
 
-// setTimeout(() => {
-//   store.dispatch("user/getLoginUser");
-// }, 3000);
-
-const handleLogin = () => {
-  router.push("/user/login");
-};
-
-const goApiList = () => {
-  router.push("/list/api");
-};
-const goUserInfo = () => {
-  router.push({
-    path: `/info/user/${store.state.user.loginUser.id}`,
-  });
-};
-
-const handleLogout = async () => {
-  const data = await UserControllerService.userLogoutUsingPost();
-  if (data.data) {
-    message.success("退出登陆成功");
-    store.state.user.loginUser = undefined;
-  } else {
-    message.error("退出登陆失败，" + data.message);
+const handleCommand = async (command: string) => {
+  switch (command) {
+    case "login":
+      router.push("/user/login");
+      break;
+    case "logout":
+      try {
+        const res = await userLogout();
+        if (res.data) {
+          ElMessage.success("退出登录成功");
+          // 清除token
+          localStorage.removeItem("user_login_token");
+          store.state.user.loginUser = undefined;
+        } else {
+          ElMessage.error("退出登录失败，" + res.message);
+        }
+      } catch (error) {
+        ElMessage.error("退出登录失败");
+      }
+      break;
+    case "apiList":
+      router.push("/list/api");
+      break;
+    case "userInfo":
+      router.push({
+        path: `/info/user/${store.state.user.loginUser?.id}`,
+      });
+      break;
   }
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+#globalHeader {
+  padding: 0 20px;
+}
+
+.header-menu {
+  border-bottom: none;
+}
+
+.logo-item {
+  padding: 0 !important;
+  margin-right: 38px;
+  cursor: default;
+}
+
+.logo-container {
+  width: 50px;
+  height: 50px;
+  border-radius: 2px;
+  background: var(--el-fill-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.user-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.user-dropdown {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--el-text-color-primary);
+}
+
+.user-dropdown:hover {
+  color: var(--el-color-primary);
+}
+</style>

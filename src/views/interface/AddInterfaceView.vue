@@ -1,69 +1,91 @@
 <template>
   <div id="addInterfaceInfoView">
-    <a-form :model="form" label-align="left">
-      <a-form-item field="name" label="接口名称">
-        <a-input v-model="form.name" placeholder="请输入名称" />
-      </a-form-item>
-      <a-form-item field="description" label="题目内容">
+    <el-form :model="form" label-width="120px">
+      <el-form-item label="接口名称" prop="name">
+        <el-input
+          v-model="form.name"
+          placeholder="请输入名称"
+          style="width: 638px"
+        />
+      </el-form-item>
+      <el-form-item label="接口内容" prop="description">
         <MdEditor :value="form.description" :handle-change="onDescChange" />
-      </a-form-item>
-      <a-form-item field="method" label="请求类型">
-        <a-space size="large">
-          <a-radio-group v-model="form.method">
-            <a-radio value="Post">Post</a-radio>
-            <a-radio value="Get">Get</a-radio>
-            <a-radio value="Update">Update</a-radio>
-            <a-radio value="Delete">Delete</a-radio>
-          </a-radio-group>
-        </a-space>
-      </a-form-item>
-      <a-form-item field="url" label="访问地址">
-        <a-input v-model="form.url" placeholder="请输入访问地址" />
-      </a-form-item>
-      <a-form-item field="requestParam" label="访问参数示例">
-        <a-spin
-          :loading="loading"
-          tip="This may take a while..."
-          class="paramDiv"
-        >
-          <div v-if="!loading">
-            <CodeEditor
-              :value="form.requestParam"
-              language="json"
-              :handle-change="onReqParamChange"
-            />
-          </div>
-        </a-spin>
-      </a-form-item>
-      <a-form-item field="responseBody" label="响应体示例">
-        <a-spin
-          :loading="loading"
-          tip="This may take a while..."
-          class="paramDiv"
-        >
-          <div v-if="!loading">
-            <CodeEditor
-              :value="form.responseBody"
-              language="json"
-              :handle-change="onRepBodyChange"
-            />
-          </div>
-        </a-spin>
-      </a-form-item>
-      <a-form-item field="status" label="接口状态">
-        <a-space size="large">
-          <a-radio-group v-model="form.status">
-            <a-radio :value="0">关闭</a-radio>
-            <a-radio :value="1">开启</a-radio>
-          </a-radio-group>
-        </a-space>
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" style="min-width: 200px" @click="doSubmit"
-          >提交
-        </a-button>
-      </a-form-item>
-    </a-form>
+      </el-form-item>
+      <el-form-item label="请求类型" prop="method">
+        <el-radio-group v-model="form.method">
+          <el-radio value="Post">Post</el-radio>
+          <el-radio value="Get">Get</el-radio>
+          <el-radio value="Update">Update</el-radio>
+          <el-radio value="Delete">Delete</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="访问地址" prop="url">
+        <el-input
+          v-model="form.url"
+          placeholder="请输入访问地址"
+          style="width: 638px"
+        />
+      </el-form-item>
+      <el-form-item label="访问参数示例" prop="requestParam">
+        <el-collapse>
+          <el-collapse-item title="点击输入示例访问参数">
+            <el-skeleton :loading="loading" animated>
+              <template #template>
+                <div class="paramDiv">
+                  <div style="height: 30vh"></div>
+                </div>
+              </template>
+              <template #default>
+                <div v-if="!loading" class="paramDiv">
+                  <CodeEditor
+                    :value="form.requestParam"
+                    language="json"
+                    :handle-change="onReqParamChange"
+                    min-height="30vh"
+                    max-height="35vh"
+                  />
+                </div>
+              </template>
+            </el-skeleton>
+          </el-collapse-item>
+        </el-collapse>
+      </el-form-item>
+      <el-form-item label="响应体示例" prop="responseBody">
+        <el-collapse>
+          <el-collapse-item title="点击输入示例响应体">
+            <el-skeleton :loading="loading" animated>
+              <template #template>
+                <div class="paramDiv">
+                  <div style="height: 30vh"></div>
+                </div>
+              </template>
+              <template #default>
+                <div v-if="!loading" class="paramDiv">
+                  <CodeEditor
+                    :value="form.responseBody"
+                    language="json"
+                    :handle-change="onRepBodyChange"
+                    min-height="30vh"
+                    max-height="35vh"
+                  />
+                </div>
+              </template>
+            </el-skeleton>
+          </el-collapse-item>
+        </el-collapse>
+      </el-form-item>
+      <el-form-item label="接口状态" prop="status">
+        <el-radio-group v-model="form.status">
+          <el-radio :value="0">关闭</el-radio>
+          <el-radio :value="1">开启</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="doSubmit" style="width: 200px">
+          提交
+        </el-button>
+      </el-form-item>
+    </el-form>
   </div>
 </template>
 
@@ -71,10 +93,12 @@
 import { onMounted, ref } from "vue";
 import MdEditor from "@/components/MdEditor.vue";
 import {
-  InterfaceControllerService,
-  InterfaceInfoVO,
-} from "../../../generated/interface";
-import message from "@arco-design/web-vue/es/message";
+  addInterface,
+  updateInterface,
+  getInterfaceById,
+  type InterfaceInfoVO,
+} from "@/api";
+import { ElMessage } from "element-plus";
 import { useRoute, useRouter } from "vue-router";
 import CodeEditor from "@/components/CodeEditor.vue";
 
@@ -85,7 +109,7 @@ const loading = ref(true);
 const form = ref<InterfaceInfoVO>({
   requestParam: "{" + "\n\n" + "}",
   responseBody: "{" + "\n\n" + "}",
-});
+} as any);
 
 //通过路由来区分是添加还是更新
 const updatePage = route.path.includes("update");
@@ -98,15 +122,12 @@ const loadData = async () => {
     loading.value = false;
     return;
   }
-  const res = await InterfaceControllerService.getInterfaceInfoVoByIdUsingGet(
-    id as any
-  );
-  if (res.code === 0) {
+  try {
+    const res = await getInterfaceById(Number(id));
     form.value = res.data as any;
     loading.value = false;
-    console.log(form.value);
-  } else {
-    message.error("加载失败，" + res.message);
+  } catch (error) {
+    ElMessage.error("加载失败");
   }
 };
 
@@ -132,26 +153,18 @@ const onRepBodyChange = (v: string) => {
 };
 
 const doSubmit = async () => {
-  if (updatePage) {
-    const res = await InterfaceControllerService.updateInterfaceInfoUsingPost(
-      form.value
-    );
-    if (res.code === 0) {
-      message.success("更新成功");
+  try {
+    if (updatePage) {
+      await updateInterface(form.value);
+      ElMessage.success("更新成功");
       router.push({ path: "/list/api" });
     } else {
-      message.error("更新失败，" + res.message);
-    }
-  } else {
-    const res = await InterfaceControllerService.addInterfaceInfoUsingPost(
-      form.value
-    );
-    if (res.code === 0) {
-      message.success("创建成功");
+      await addInterface(form.value);
+      ElMessage.success("创建成功");
       router.push({ path: "/list/api" });
-    } else {
-      message.error("创建失败，" + res.message);
     }
+  } catch (error) {
+    ElMessage.error(updatePage ? "更新失败" : "创建失败");
   }
 };
 </script>
@@ -163,10 +176,11 @@ const doSubmit = async () => {
 }
 
 .paramDiv {
-  width: 70%;
-  height: 81vh;
+  width: 580px;
+  height: 35vh;
   padding: 16px; /* 可根据需要添加内边距 */
   border: 1px #1081ec solid;
   border-radius: 8px; /* 圆角 */
+  background-color: rgb(255, 255, 255);
 }
 </style>

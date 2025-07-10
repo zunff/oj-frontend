@@ -1,24 +1,11 @@
 import { RouteRecordRaw } from "vue-router";
-import HomeView from "@/views/HomeView.vue";
-import NoAuthView from "@/views/NoAuthView.vue";
-import UserLoginView from "@/views/user/UserLoginView.vue";
-import AddQuestionView from "@/views/question/AddQuestionView.vue";
-import ViewQuestionView from "@/views/question/ViewQuestionView.vue";
-import UserRegisterView from "@/views/user/UserRegisterView.vue";
-import UserInfoView from "@/views/user/UserInfoView.vue";
-import ManageQuestionView from "@/views/question/ManageQuestionView.vue";
-import QuestionSubmitView from "@/views/question/QuestionSubmitView.vue";
-import ListOpenApiView from "@/views/interface/ListOpenApiView.vue";
-import ApiDocumentView from "@/views/interface/ApiDocumentView.vue";
-import AddInterfaceView from "@/views/interface/AddInterfaceView.vue";
 import AccessEnum from "@/access/accessEnum";
-import UserLayout from "../layouts/UserLayout.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
     path: "/user",
     name: "用户相关",
-    component: UserLayout,
+    component: () => import("../layouts/UserLayout.vue"),
     meta: {
       hideInMenu: true,
     },
@@ -26,29 +13,29 @@ export const routes: Array<RouteRecordRaw> = [
       {
         path: "login",
         name: "登陆",
-        component: UserLoginView,
+        component: () => import("@/views/user/UserLoginView.vue"),
       },
       {
         path: "register",
         name: "注册",
-        component: UserRegisterView,
+        component: () => import("@/views/user/UserRegisterView.vue"),
       },
     ],
   },
   {
     path: "/",
     name: "首页",
-    component: HomeView,
+    component: () => import("@/views/HomeView.vue"),
   },
   {
     path: "/question_submit",
     name: "浏览提交",
-    component: QuestionSubmitView,
+    component: () => import("@/views/question/QuestionSubmitView.vue"),
   },
   {
     path: "/view/question/:id",
     name: "做题页面",
-    component: ViewQuestionView,
+    component: () => import("@/views/question/ViewQuestionView.vue"),
     props: true,
     meta: {
       access: AccessEnum.USER,
@@ -58,7 +45,7 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: "/add/question",
     name: "创建题目",
-    component: AddQuestionView,
+    component: () => import("@/views/question/AddQuestionView.vue"),
     meta: {
       access: AccessEnum.ADMIN,
     },
@@ -66,7 +53,7 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: "/update/question",
     name: "更新题目",
-    component: AddQuestionView,
+    component: () => import("@/views/question/AddQuestionView.vue"),
     meta: {
       access: AccessEnum.ADMIN,
       hideInMenu: true,
@@ -75,15 +62,15 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: "/manage/question",
     name: "管理题目",
-    component: ManageQuestionView,
+    component: () => import("@/views/question/ManageQuestionView.vue"),
     meta: {
       access: AccessEnum.ADMIN,
     },
   },
   {
     path: "/list/api",
-    name: "开放接口列表",
-    component: ListOpenApiView,
+    name: "Api开放平台",
+    component: () => import("@/views/interface/ListOpenApiView.vue"),
     meta: {
       hideInMenu: true,
       access: AccessEnum.USER,
@@ -93,7 +80,7 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/info/user/:id",
     name: "用户信息",
     props: true,
-    component: UserInfoView,
+    component: () => import("@/views/user/UserInfoView.vue"),
     meta: {
       hideInMenu: true,
       access: AccessEnum.USER,
@@ -103,23 +90,23 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/interface/document/:id",
     name: "接口文档",
     props: true,
-    component: ApiDocumentView,
+    component: () => import("@/views/interface/ApiDocumentView.vue"),
     meta: {
       hideInMenu: true,
     },
   },
   {
     path: "/add/interface",
-    name: "添加接口",
-    component: AddInterfaceView,
+    name: "添加Api接口",
+    component: () => import("@/views/interface/AddInterfaceView.vue"),
     meta: {
       access: AccessEnum.ADMIN,
     },
   },
   {
     path: "/update/interface",
-    name: "更新接口",
-    component: AddInterfaceView,
+    name: "更新Api接口",
+    component: () => import("@/views/interface/AddInterfaceView.vue"),
     meta: {
       access: AccessEnum.ADMIN,
       hideInMenu: true,
@@ -128,7 +115,7 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: "/404",
     name: "权限不足",
-    component: NoAuthView,
+    component: () => import("@/views/NoAuthView.vue"),
     meta: {
       hideInMenu: true,
     },

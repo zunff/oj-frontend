@@ -1,130 +1,137 @@
 <template>
   <div id="homeView">
-    <a-form :model="searchParams" layout="inline" style="margin-bottom: 30px">
-      <a-form-item field="title" label="标题">
-        <a-input
-          v-model="searchParams.title"
+    <el-form :model="searchParams" inline style="margin-bottom: 30px">
+      <el-form-item label="标题">
+        <el-input
+          v-model="inputTitle"
           placeholder="请输入标题"
           style="min-width: 240px"
+          @blur="onTitleBlur"
         />
-      </a-form-item>
-      <a-form-item field="tags" label="标签">
-        <a-input-tag
+      </el-form-item>
+      <el-form-item label="标签">
+        <TagInput
           v-model="searchParams.tags"
           placeholder="请输入标签"
-          style="min-width: 240px"
+          @change="onTagsChange"
         />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" @click="doSubmit">搜索</a-button>
-      </a-form-item>
-    </a-form>
-    <a-table
-      :columns="columns"
-      :data="dataList"
-      :pagination="{
-        pageSize: searchParams.pageSize,
-        current: searchParams.current,
-        total: total,
-        showTotal: true,
-      }"
-      @pageChange="onPageChange"
-      column-resizable
-      :bordered="{ cell: true }"
-    >
-      <template #optional="{ record }">
-        <a-space>
-          <a-button type="primary" @click="toQuestionPage(record)"
-            >做题
-          </a-button>
-        </a-space>
-      </template>
-      <template #tags="{ record }">
-        <div>
-          <a-space wrap>
-            <a-tag
-              v-for="(tag, index) of record.tags"
-              :key="index"
-              color="green"
-              >{{ tag }}
-            </a-tag>
-          </a-space>
-        </div>
-      </template>
-      <template #acceptRate="{ record }">
-        <div>
+      </el-form-item>
+    </el-form>
+
+    <el-table :data="dataList" style="width: 100%" border stripe>
+      <el-table-column prop="id" label="题目编号" width="100" />
+      <el-table-column prop="title" label="标题" show-overflow-tooltip />
+      <el-table-column label="标签" width="200">
+        <template #default="{ row }">
+          <el-tag
+            v-for="(tag, index) in row.tags"
+            :key="index"
+            type="success"
+            style="margin-right: 5px; margin-bottom: 5px"
+          >
+            {{ tag }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="通过率" width="150">
+        <template #default="{ row }">
           {{
             `${
-              record.submitNum
-                ? Math.ceil((record.acceptedNum / record.submitNum) * 100)
+              row.submitNum
+                ? Math.ceil((row.acceptedNum / row.submitNum) * 100)
                 : 0
-            }% (${record.acceptedNum}/${record.submitNum})`
+            }% (${row.acceptedNum}/${row.submitNum})`
           }}
-        </div>
-      </template>
-      <template #createTime="{ record }">
-        <div>
-          {{ moment(record.createTime).format("YYYY-MM-DD") }}
-        </div>
-      </template>
-    </a-table>
+        </template>
+      </el-table-column>
+      <el-table-column label="创建时间" width="145">
+        <template #default="{ row }">
+          {{ moment(row.createTime).format("YYYY-MM-DD") }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" size="small" @click="toQuestionPage(row)">
+            做题
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="searchParams.current"
+        v-model:page-size="searchParams.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="onSizeChange"
+        @current-change="onCurrentChange"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watchEffect } from "vue";
 import {
-  Question,
-  QuestionControllerService,
-  QuestionQueryRequest,
-} from "../../generated/question";
-import message from "@arco-design/web-vue/es/message";
+  getQuestionList,
+  type Question,
+  type QuestionQueryRequest,
+} from "@/api";
+import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import moment from "moment";
+import { useStore } from "vuex";
+import TagInput from "@/components/TagInput.vue";
 
-const dataList = ref([]);
+const dataList = ref<any[]>([]);
 const total = ref(0);
 
 const searchParams = ref<QuestionQueryRequest>({
-  tags: [],
+  tags: [], // 保证为string[]
   title: "",
   pageSize: 10,
   current: 1,
 });
 
+const inputTitle = ref("");
+
 const loadData = async () => {
-  const res = await QuestionControllerService.listQuestionVoByPageUsingPost(
-    searchParams.value
-  );
-  if (res.code == 0) {
+  try {
+    const res = await getQuestionList(searchParams.value);
     dataList.value = res.data.records;
     total.value = res.data.total;
-  } else {
-    message.error("获取题目列表失败，" + res.message);
+  } catch (error) {
+    ElMessage.error("获取题目列表失败");
   }
 };
 
-watchEffect(() => {
-  loadData();
-});
-
 onMounted(() => {
+  inputTitle.value = searchParams.value.title;
   loadData();
 });
 
-const onPageChange = (page: number) => {
-  searchParams.value = {
-    ...searchParams.value,
-    current: page,
-  };
+const onSizeChange = (size: number) => {
+  searchParams.value.pageSize = size;
+  searchParams.value.current = 1;
+  loadData();
 };
 
-const doSubmit = () => {
-  searchParams.value = {
-    ...searchParams.value,
-    current: 1,
-  };
-  // loadData();
+const onCurrentChange = (page: number) => {
+  searchParams.value.current = page;
+  loadData();
+};
+
+const onTitleBlur = () => {
+  searchParams.value.title = inputTitle.value;
+  searchParams.value.current = 1; // 失焦搜索时重置到第一页
+  loadData();
+};
+
+const onTagsChange = () => {
+  searchParams.value.current = 1; // 标签变化时重置到第一页
+  loadData();
 };
 
 const router = useRouter();
@@ -135,42 +142,18 @@ const toQuestionPage = (question: Question) => {
   });
 };
 
-const columns = [
-  {
-    title: "题目编号",
-    dataIndex: "id",
-  },
-  {
-    title: "标题",
-    dataIndex: "title",
-    ellipsis: true,
-  },
-  {
-    title: "标签",
-    dataIndex: "tags",
-    slotName: "tags",
-  },
-  {
-    title: "通过率",
-    slotName: "acceptRate",
-  },
-  {
-    title: "创建时间",
-    dataIndex: "createTime",
-    slotName: "createTime",
-    width: 145,
-  },
-  {
-    title: "Optional",
-    slotName: "optional",
-    width: 155,
-  },
-];
+const store = useStore();
 </script>
 
 <style scoped>
 #homeView {
   max-width: 1280px;
   margin: 0 auto;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style>

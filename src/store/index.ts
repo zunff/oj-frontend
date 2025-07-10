@@ -2,10 +2,20 @@ import { createStore } from "vuex";
 import user from "@/store/user";
 
 export default createStore({
-  state: {},
+  state: {
+    loading: false,
+  },
   getters: {},
-  mutations: {},
-  actions: {},
+  actions: {
+    setLoading({ commit }, payload) {
+      commit("SET_LOADING", payload);
+    },
+  },
+  mutations: {
+    SET_LOADING(state, payload) {
+      state.loading = payload;
+    },
+  },
   modules: {
     user,
   },

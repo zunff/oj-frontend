@@ -1,11 +1,18 @@
 <template>
-  {{ languageValue }}
-  <div id="code-editor" ref="codeEditorRef" style="min-height: 73vh" />
+  <div id="code-editor" ref="codeEditorRef" :style="editorStyles" />
 </template>
 
 <script setup lang="ts">
 import * as monaco from "monaco-editor";
-import { onMounted, ref, toRaw, withDefaults, defineProps, watch } from "vue";
+import {
+  onMounted,
+  ref,
+  toRaw,
+  withDefaults,
+  defineProps,
+  watch,
+  computed,
+} from "vue";
 
 /**
  * 定义组件属性类型
@@ -14,6 +21,8 @@ interface Props {
   value: string;
   language: string;
   handleChange: (v: string) => void;
+  minHeight: string;
+  maxHeight: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,7 +31,15 @@ const props = withDefaults(defineProps<Props>(), {
   handleChange: (v: string) => {
     console.log(v);
   },
+  minHeight: () => "73vh",
+  maxHeight: () => "",
 });
+
+// 创建一个计算属性来返回样式对象
+const editorStyles = computed(() => ({
+  minHeight: props.minHeight, // 使用 props 中的 minHeight
+  maxHeight: props.maxHeight,
+}));
 
 const codeEditorRef = ref();
 const codeEditor = ref();
@@ -43,7 +60,6 @@ onMounted(() => {
   if (!codeEditorRef.value) {
     return;
   }
-  console.log(props.value);
   setEditor();
   //编辑 监听内容变化
   codeEditor.value.onDidChangeModelContent(() => {

@@ -1,156 +1,158 @@
 <template>
-  <div id="interfaceInfoInfoView" v-if="interfaceInfoInfo">
-    <a-card :title="interfaceInfoInfo.name">
-      <a-descriptions style="margin-top: 20px" size="small" :column="1">
-        <a-descriptions-item label="简介">
-          <a-card>
-            <MdViewer :value="interfaceInfoInfo.description" />
-          </a-card>
-        </a-descriptions-item>
-        <a-descriptions-item label="访问路径">
-          {{ interfaceInfoInfo.url }}
-        </a-descriptions-item>
-        <a-descriptions-item label="请求参数示例">
-          <a-card>
-            {{ JSON.parse(interfaceInfoInfo.requestParam) }}
-          </a-card>
-        </a-descriptions-item>
-        <a-descriptions-item label="响应体示例">
-          <a-card>
-            {{ interfaceInfoInfo.responseBody }}
-          </a-card>
-        </a-descriptions-item>
-        <a-descriptions-item label="请求类型">
-          {{ interfaceInfoInfo.method }}
-        </a-descriptions-item>
-        <a-descriptions-item label="接口状态">
-          <div v-if="interfaceInfoInfo.status == 0">
-            <a-badge status="normal" />
-            关闭
-          </div>
-          <div v-else>
-            <a-badge status="success" />
-            开启
-          </div>
-        </a-descriptions-item>
-      </a-descriptions>
-      <template #extra>
-        <a-link @click="showOnlineTest">在线测试</a-link>
-      </template>
-    </a-card>
-    <a-card v-if="isShow" style="margin-top: 20px" title="在线测试">
-      <template #extra>
-        剩余次数：{{ interfaceInfoInfo.leftNum }}
-        <a-button
-          type="outline"
-          status="success"
-          @click="doSubmit"
-          style="margin-left: 20px"
+  <div id="apiDocumentView">
+    <h2>{{ interfaceInfo?.name || "接口文档" }}</h2>
+    <div class="api-info" v-if="interfaceInfo">
+      <div class="api-title">
+        <b>{{ interfaceInfo.name }}</b>
+      </div>
+      <div class="api-url">
+        <span>{{ interfaceInfo.url }}</span>
+      </div>
+      <div class="api-section">
+        <b>请求参数示例</b>
+        <pre>{{ interfaceInfo.requestParam }}</pre>
+      </div>
+      <div class="api-section">
+        <b>响应体示例</b>
+        <pre>{{ interfaceInfo.responseBody }}</pre>
+      </div>
+      <div class="api-section">
+        <b>请求类型</b> <span>{{ interfaceInfo.method }}</span>
+      </div>
+      <div class="api-section">
+        <b>接口状态</b>
+        <span :style="{ color: interfaceInfo.status === 1 ? 'green' : 'gray' }">
+          ● {{ interfaceInfo.status === 1 ? "开启" : "关闭" }}
+        </span>
+      </div>
+      <div class="api-section">
+        <b>接口调用次数</b>
+        <span>{{ interfaceInfo.leftNum }}</span>
+      </div>
+      <div class="api-section">
+        <el-button type="primary" @click="handleTestClick" v-if="!showTest"
+          >在线测试</el-button
         >
-          <IconPlayArrow />
-          发送
-        </a-button>
-      </template>
+      </div>
+    </div>
 
-      <a-form :model="form" layout="vertical">
-        <a-form-item field="name" label="请求参数">
-          <div class="paramDiv">
-            <CodeEditor
-              :value="form.requestParam"
-              :handle-change="handleJsonChange"
-              language="json"
-            />
-          </div>
-        </a-form-item>
-        <a-form-item v-if="invokeResponse" field="name" label="请求响应">
-          <div class="paramDiv">
-            {{ invokeResponse }}
-          </div>
-        </a-form-item>
-      </a-form>
-    </a-card>
+    <div v-if="showTest" class="api-test">
+      <h3>在线测试</h3>
+      <el-input
+        type="textarea"
+        v-model="testParams"
+        :rows="8"
+        placeholder="请求参数"
+        style="margin-bottom: 10px"
+      />
+      <el-button type="success" @click="handleSend">发送</el-button>
+      <div v-if="testResult" class="test-result">
+        <b>响应结果：</b>
+        <pre>{{ testResult }}</pre>
+      </div>
+      <div ref="bottomRef"></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, nextTick, watch } from "vue";
+import { useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
 import {
-  InterfaceControllerService,
-  InterfaceInfoVO,
-  OnlineInvokeApiRequest,
-} from "../../../generated/interface";
-import message from "@arco-design/web-vue/es/message";
-import { defineProps, onMounted, ref, withDefaults } from "vue";
-import { IconPlayArrow } from "@arco-design/web-vue/es/icon";
-import CodeEditor from "@/components/CodeEditor.vue";
-import MdViewer from "@/components/MdViewer.vue";
+  getInterfaceById,
+  invokeInterface,
+  getInvokeCount,
+} from "@/api/interface";
 import { useStore } from "vuex";
 
-interface Props {
-  id: string;
-}
+const route = useRoute();
 
-const props = withDefaults(defineProps<Props>(), {
-  id: () => "",
-});
+const interfaceInfo = ref<any>(null);
+const showTest = ref(false);
+const testParams = ref("");
+const testResult = ref("");
+const bottomRef = ref<HTMLElement | null>(null);
 
-const store = useStore();
-
-const isShow = ref(false);
-
-const interfaceInfoInfo = ref<InterfaceInfoVO>();
-
-const loadData = async () => {
-  const res = await InterfaceControllerService.getInterfaceInfoVoByIdUsingGet(
-    props.id as any
-  );
-  if (res.code == 0) {
-    interfaceInfoInfo.value = res.data;
-  } else {
-    message.error("获取开放接口失败，" + res.message);
+const fetchInterfaceInfo = async (id: string) => {
+  try {
+    const res = await getInterfaceById(id);
+    interfaceInfo.value = res.data;
+    // 默认填充请求参数示例
+    testParams.value = res.data.requestParam || "";
+  } catch (e: any) {
+    ElMessage.error("获取接口详情失败：" + (e.message || e));
   }
 };
 
-onMounted(() => {
-  loadData();
-});
-
-const showOnlineTest = () => {
-  isShow.value = true;
+const handleTestClick = () => {
+  showTest.value = true;
+  nextTick(() => {
+    bottomRef.value?.scrollIntoView({ behavior: "smooth" });
+  });
 };
 
-const form = ref<OnlineInvokeApiRequest>({
-  id: props.id as any,
-  requestParam: "{" + "\n" + "\n" + "}",
-});
-
-const invokeResponse = ref();
-
-const handleJsonChange = (json: string) => {
-  form.value.requestParam = json;
-};
-
-const doSubmit = async () => {
-  const res = await InterfaceControllerService.onlineInvokeApiUsingPost(
-    form.value
-  );
-  if (res.code == 0) {
-    invokeResponse.value = res.data;
-  } else {
-    message.error("调用接口失败，" + res.message);
+const handleSend = async () => {
+  try {
+    const params = JSON.parse(testParams.value);
+    const res = await invokeInterface({
+      id: route.params.id as string,
+      requestParam: JSON.stringify(params),
+    });
+    testResult.value = JSON.stringify(res.data, null, 2);
+    // 重新获取调用次数
+    fetchInterfaceInfo(route.params.id as string);
+  } catch (e: any) {
+    ElMessage.error("请求失败：" + (e.message || e));
   }
 };
+
+const loadAll = () => {
+  const id = route.params.id as string;
+  if (!id) return;
+  fetchInterfaceInfo(id);
+};
+
+onMounted(loadAll);
+watch(() => route.params.id, loadAll);
 </script>
 
 <style scoped>
-#interfaceInfoInfoView .arco-space-horizontal .arco-space-item {
-  margin-bottom: 0 !important;
+#apiDocumentView {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
 }
-
-.paramDiv {
-  width: 100%;
-  margin: 0 auto; /* 水平居中 */
-  padding: 16px; /* 可根据需要添加内边距 */
-  border: 1px #1081ec solid;
-  border-radius: 8px; /* 圆角 */
+.api-info {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px #f0f1f2;
+}
+.api-title {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.api-url {
+  color: #409eff;
+  margin-bottom: 16px;
+}
+.api-section {
+  margin-bottom: 16px;
+}
+.api-test {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px #f0f1f2;
+}
+.test-result {
+  margin-top: 16px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 14px;
+  color: #333;
 }
 </style>

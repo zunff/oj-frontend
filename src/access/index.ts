@@ -1,16 +1,17 @@
 import checkAccess from "@/access/checkAccess";
 import router from "@/router";
-import store from "@/store";
 import AccessEnum from "@/access/accessEnum";
 
 router.beforeEach(async (to, from, next) => {
-  //判断是否登陆
-  let loginUser = store.state.user.loginUser;
-  //之前已经登陆过了，每次请求都去后端重新获取用户信息
-  if (!loginUser || !loginUser.userRole) {
-    //加async 与await 表示这个请求为同步请求，请求成功后，再去执行下面的代码
-    await store.dispatch("user/getLoginUser");
-    loginUser = store.state.user.loginUser;
+  // 判断是否登陆
+  let loginUser = undefined;
+  const userInfoStr = localStorage.getItem("user_login_info");
+  if (userInfoStr) {
+    try {
+      loginUser = JSON.parse(userInfoStr);
+    } catch (e) {
+      loginUser = undefined;
+    }
   }
 
   const needAccess = to.meta?.access ?? AccessEnum.NOT_LOGIN;

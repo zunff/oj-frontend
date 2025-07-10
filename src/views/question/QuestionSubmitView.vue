@@ -1,212 +1,166 @@
 <template>
-  <div id="questionSubmitView">
-    <a-form :model="searchParams" layout="inline" style="margin-bottom: 30px">
-      <a-form-item field="title" label="题号">
-        <a-input
-          v-model="searchParams.questionId"
-          placeholder="请输入题号"
-          style="min-width: 240px"
-        />
-      </a-form-item>
-      <a-form-item>
-        <a-select
-          :style="{ width: '110px', backgroundColor: '#ffffff' }"
-          v-model="searchParams.language"
-          placeholder="选择语言"
-          allow-clear
-        >
-          <a-option>java</a-option>
-          <a-option>cpp</a-option>
-          <a-option>go</a-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" @click="doSubmit">搜索</a-button>
-      </a-form-item>
-    </a-form>
-    <a-table
-      :columns="columns"
-      :data="dataList"
-      :pagination="{
-        pageSize: searchParams.pageSize,
-        current: searchParams.current,
-        total: total,
-        showTotal: true,
-      }"
-      @pageChange="onPageChange"
-      column-resizable
-      :bordered="{ cell: true }"
-    >
-      <template #judgeInfo="{ record }">
-        <div>
-          {{ JSON.stringify(record.judgeInfo) }}
-        </div>
-      </template>
-      <template #status="{ record }">
-        <a-tag :color="getColor(record.status)"
-          >{{ getStatus(record.status) }}
-        </a-tag>
-      </template>
-      <template #memory="{ record }">
-        {{ record.judgeInfo.memory }}
-      </template>
-      <template #time="{ record }">
-        {{ record.judgeInfo.time }}
-      </template>
-      <template #message="{ record }">
-        {{ record.judgeInfo.message }}
-      </template>
-      <template #createTime="{ record }">
-        <div>
-          {{ moment(record.createTime).format("YYYY-MM-DD") }}
-        </div>
-      </template>
-    </a-table>
+  <div class="my-submit-list-container">
+    <h2 style="margin-bottom: 18px">我的提交记录</h2>
+    <el-table :data="dataList" border stripe style="width: 100%">
+      <el-table-column
+        prop="questionVO.title"
+        label="题目标题"
+        show-overflow-tooltip
+      />
+      <el-table-column prop="language" label="语言" width="100" />
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="statusTagType(row.status)">
+            {{ statusText(row.status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="judgeInfo.time" label="执行用时(ms)" width="120" />
+      <el-table-column prop="judgeInfo.memory" label="内存(KB)" width="120" />
+      <el-table-column prop="createTime" label="提交时间" width="180">
+        <template #default="{ row }">
+          {{ formatTime(row.createTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="100">
+        <template #default="{ row }">
+          <el-button type="primary" size="small" @click="viewDetail(row)"
+            >详情</el-button
+          >
+        </template>
+      </el-table-column>
+    </el-table>
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="searchParams.current"
+        v-model:page-size="searchParams.pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="onSizeChange"
+        @current-change="onCurrentChange"
+      />
+    </div>
+    <el-dialog v-model="dialogVisible" title="提交详情" width="70%">
+      <div style="margin-bottom: 16px">
+        <h3>判题信息</h3>
+        <pre style="white-space: pre-wrap">{{
+          selectedSubmission?.judgeInfo?.message
+        }}</pre>
+      </div>
+      <div>
+        <h3>提交代码</h3>
+        <CodeEditor :value="selectedSubmission?.code" read-only />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect } from "vue";
-import {
-  Question,
-  QuestionControllerService,
-  QuestionSubmitQueryRequest,
-} from "../../../generated/question";
-import message from "@arco-design/web-vue/es/message";
-import { useRouter } from "vue-router";
+import { ref, onMounted } from "vue";
+import { getSubmitList } from "@/api/question";
+import { ElMessage } from "element-plus";
 import moment from "moment";
+import CodeEditor from "@/components/CodeEditor.vue";
 
-const dataList = ref([]);
+const dataList = ref<any[]>([]);
 const total = ref(0);
-
-const getStatus = (value: number) => {
-  switch (value) {
-    case 0:
-      return "等待中";
-    case 1:
-      return "判题中";
-    case 2:
-      return "Accepted";
-    case 3:
-      return "ERROR";
-    default:
-      return "";
-  }
-};
-
-const getColor = (value: number) => {
-  switch (value) {
-    case 0:
-      return "lime";
-    case 1:
-      return "gold";
-    case 2:
-      return "green";
-    case 3:
-      return "red";
-    default:
-      return "green";
-  }
-};
-
-const searchParams = ref<QuestionSubmitQueryRequest>({
-  language: "",
-  pageSize: 10,
+const dialogVisible = ref(false);
+const selectedSubmission = ref<any>(null);
+const searchParams = ref({
   current: 1,
-  sortField: "createTime",
-  sortOrder: "descend",
+  pageSize: 10,
+  userId: undefined, // 当前用户id
 });
 
 const loadData = async () => {
-  const res =
-    await QuestionControllerService.listQuestionSubmitVoByPageUsingPost(
-      searchParams.value
-    );
-  if (res.code == 0) {
-    dataList.value = res.data.records;
-    total.value = res.data.total;
-  } else {
-    message.error("获取题目列表失败，" + res.message);
+  try {
+    const res = await getSubmitList(searchParams.value);
+    if (res.code === 0 && res.data) {
+      dataList.value = res.data.records;
+      total.value = res.data.total;
+    } else {
+      ElMessage.error(res.message || "获取提交记录失败");
+    }
+  } catch (e) {
+    console.log("获取提交记录失败" + e);
   }
 };
-
-watchEffect(() => {
-  loadData();
-});
 
 onMounted(() => {
   loadData();
 });
 
-const onPageChange = (page: number) => {
-  searchParams.value = {
-    ...searchParams.value,
-    current: page,
-  };
+const onSizeChange = (size: number) => {
+  searchParams.value.pageSize = size;
+  searchParams.value.current = 1;
+  loadData();
 };
 
-const doSubmit = () => {
-  searchParams.value = {
-    ...searchParams.value,
-    current: 1,
-  };
-  // loadData();
+const onCurrentChange = (page: number) => {
+  searchParams.value.current = page;
+  loadData();
 };
 
-const router = useRouter();
-
-const toQuestionPage = (question: Question) => {
-  router.push({
-    path: `/view/question/${question.id}`,
-  });
+const formatTime = (time: string) => {
+  return moment(time).format("YYYY-MM-DD HH:mm:ss");
 };
 
-const columns = [
-  {
-    title: "提交号",
-    dataIndex: "id",
-  },
-  {
-    title: "编程语言",
-    dataIndex: "language",
-  },
-  {
-    title: "判题状态",
-    dataIndex: "status",
-    slotName: "status",
-  },
-  {
-    title: "占用内存",
-    slotName: "memory",
-  },
-  {
-    title: "运行时间",
-    slotName: "time",
-  },
-  {
-    title: "运行信息",
-    slotName: "message",
-  },
-  {
-    title: "题目名称",
-    dataIndex: "questionVO.title",
-  },
-  {
-    title: "提交者",
-    dataIndex: "userVO.userName",
-  },
-  {
-    title: "提交时间",
-    dataIndex: "createTime",
-    slotName: "createTime",
-    width: 145,
-  },
-];
+const statusText = (status: number) => {
+  // 你可以根据后端返回的status定义
+  switch (status) {
+    case 0:
+      return "待判题";
+    case 1:
+      return "通过";
+    case 2:
+      return "失败";
+    case 3:
+      return "运行错误";
+    case 4:
+      return "超时";
+    default:
+      return "未知";
+  }
+};
+
+const statusTagType = (status: number) => {
+  switch (status) {
+    case 1:
+      return "success";
+    case 2:
+      return "danger";
+    case 3:
+      return "warning";
+    case 4:
+      return "info";
+    default:
+      return "";
+  }
+};
+
+const viewDetail = (row: any) => {
+  selectedSubmission.value = row;
+  dialogVisible.value = true;
+};
 </script>
 
 <style scoped>
-#questionSubmitView {
-  max-width: 1280px;
+.my-submit-list-container {
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 24px 0;
+}
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+pre {
+  background: #f5f7fa;
+  padding: 16px;
+  border-radius: 4px;
+  max-height: 300px;
+  overflow: auto;
 }
 </style>

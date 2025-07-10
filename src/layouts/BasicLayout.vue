@@ -1,29 +1,27 @@
 <template>
   <div id="basicLayout">
-    <a-layout style="min-height: 100vh">
-      <a-layout-header class="header">
+    <el-container style="min-height: 100vh">
+      <el-header class="header">
         <GlobalHeader />
-      </a-layout-header>
-      <a-layout-content class="content">
+      </el-header>
+      <el-main class="content">
         <router-view />
-      </a-layout-content>
-      <a-layout-footer class="footer">Create By ZunF@2023</a-layout-footer>
-    </a-layout>
+      </el-main>
+      <el-footer class="footer">Create By ZunF@2023</el-footer>
+    </el-container>
   </div>
 </template>
 
-<script>
-import GlobalHeader from "@/components/GlobalHeader";
-
-export default {
-  components: { GlobalHeader },
-};
+<script setup lang="ts">
+import GlobalHeader from "@/components/GlobalHeader.vue";
 </script>
 
 <style scoped>
 #basicLayout .header {
   margin-bottom: 16px;
   box-shadow: #eee 1px 1px 5px;
+  padding: 0;
+  height: auto;
 }
 
 #basicLayout .content {
@@ -36,5 +34,6 @@ export default {
   right: 0;
   text-align: center;
   padding-top: 16px;
+  height: auto;
 }
 </style>

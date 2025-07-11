@@ -10,7 +10,7 @@
         >
           <el-menu-item index="logo" disabled class="logo-item">
             <div class="logo-container">
-              <img class="logo-image" src="../assets/sheep.png" alt="Logo" />
+              <img class="logo-image" src="/logo.svg" alt="Logo" />
             </div>
           </el-menu-item>
           <el-menu-item

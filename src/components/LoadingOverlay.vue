@@ -105,6 +105,5 @@ export default {
   ); /* 使用transform属性进一步调整位置，确保完全居中 */
   width: 20px; /* 图片宽度，可根据实际图片大小调整 */
   height: 20px; /* 图片高度，可根据实际图片大小调整 */
-  background: url("@/assets/sheep.png") no-repeat center center / cover; /* 替换为你的图片URL */
 }
 </style>

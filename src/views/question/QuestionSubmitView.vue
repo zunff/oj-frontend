@@ -112,13 +112,11 @@ const statusText = (status: number) => {
     case 0:
       return "待判题";
     case 1:
-      return "通过";
+      return "判题中";
     case 2:
-      return "失败";
+      return "通过";
     case 3:
-      return "运行错误";
-    case 4:
-      return "超时";
+      return "失败";
     default:
       return "未知";
   }
@@ -126,20 +124,21 @@ const statusText = (status: number) => {
 
 const statusTagType = (status: number) => {
   switch (status) {
-    case 1:
-      return "success";
-    case 2:
-      return "danger";
-    case 3:
-      return "warning";
-    case 4:
+    case 0:
       return "info";
+    case 1:
+      return "warning";
+    case 2:
+      return "success";
+    case 3:
+      return "danger";
     default:
-      return "";
+      return "info";
   }
 };
 
 const viewDetail = (row: any) => {
+  console.log(row);
   selectedSubmission.value = row;
   dialogVisible.value = true;
 };
